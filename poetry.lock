@@ -2898,6 +2898,19 @@ socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
 zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
+name = "webrtcvad"
+version = "2.0.10"
+description = "Python interface to the Google WebRTC Voice Activity Detector (VAD)"
+optional = false
+python-versions = "*"
+files = [
+    {file = "webrtcvad-2.0.10.tar.gz", hash = "sha256:f1bed2fb25b63fb7b1a55d64090c993c9c9167b28485ae0bcdd81cf6ede96aea"},
+]
+
+[package.extras]
+dev = ["check-manifest", "memory_profiler", "nose", "psutil", "unittest2", "zest.releaser"]
+
+[[package]]
 name = "yarl"
 version = "1.11.1"
 description = "Yet another URL library"
@@ -3005,4 +3018,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "e130f35c0af1183948ee65cafde24eaa2ef9a2e417c3b8e994d4c630405e76f7"
+content-hash = "5010ca4d0f9fa82f5e977c6dc82a4ee34860572d9e81348648618df899b47b82"

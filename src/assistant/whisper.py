@@ -6,6 +6,7 @@ from pynput import keyboard
 import ffmpeg
 import time
 import os
+import webrtcvad
 
 class SpeechRecognition:
     def __init__(self, model='small', temp_dir: str='./temp/'):
@@ -13,7 +14,7 @@ class SpeechRecognition:
         self.model = faster_whisper.WhisperModel(model, device="cuda",device_index=1, compute_type="float32")
 
         # PyAudio の設定
-        self.CHUNK = 1024
+        self.CHUNK = 480
         self.FORMAT = pyaudio.paInt16
         self.CHANNELS = 1
         self.DEVICE = 0
@@ -27,6 +28,64 @@ class SpeechRecognition:
             os.makedirs(temp_dir)
         self.temp_dir = temp_dir
 
+
+    def speech_vad(self):
+        # VAD の初期化
+        vad = webrtcvad.Vad(0)  # 3 は最も感度の高いモード
+        # ストリームを開く
+        stream = self.p.open(format=self.FORMAT,
+                        channels=self.CHANNELS,
+                        rate=self.RATE,
+                        input=True,
+                        input_device_index=self.DEVICE,
+                        frames_per_buffer=self.CHUNK)
+
+        print("待機中...")
+        # 音声データを格納するリスト
+        frames = []
+
+        # キーボードリスナーの設定
+        def on_press(key):
+            if key == keyboard.Key.esc:  # Esc キーで終了
+                return False  # リスナーを停止
+
+        before_data = None
+        while True:
+            data = stream.read(self.CHUNK)
+
+            # 音声区間を検出
+            is_speech = vad.is_speech(data, self.RATE)
+
+            # 音声区間が始まったら録音開始
+            if is_speech:
+                print("録音開始")
+                if before_data is not None:
+                    frames.append(before_data)
+                frames.append(data)
+                break
+            before_data = data
+
+        print("録音開始... Ctrl+C で終了")
+        with keyboard.Listener(on_press=on_press) as listener:
+            try:
+                while listener.running:
+                    data = stream.read(self.CHUNK)
+                    frames.append(data)
+
+            except:
+                import traceback
+                traceback.print_exc()
+                print("\n録音終了")
+
+            finally:
+                print("finally")
+                # ストリームを閉じる
+                stream.stop_stream()
+                stream.close()
+                self.p.terminate()
+                self.save_wave(frames)
+                self.noise_reduction()
+                self.whisper()
 
     def speech(self):
         # ストリームを開く
