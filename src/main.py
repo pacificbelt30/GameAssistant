@@ -8,5 +8,6 @@ if __name__ == '__main__':
     # ai.set_images(['data/screenshot.png'])
     # ai.ai_eval()
     sr = SpeechRecognition()
-    sr.speech_vad()
+    for i in range(4):
+        sr.speech_vad()
 

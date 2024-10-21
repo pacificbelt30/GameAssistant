@@ -7,11 +7,13 @@ import ffmpeg
 import time
 import os
 import webrtcvad
+from reazonspeech.k2.asr import load_model, transcribe, audio_from_path
 
 class SpeechRecognition:
     def __init__(self, model='small', temp_dir: str='./temp/'):
         # faster_whisper のモデルをロード
-        self.model = faster_whisper.WhisperModel(model, device="cuda",device_index=1, compute_type="float32")
+        # self.model = faster_whisper.WhisperModel(model, device="cuda",device_index=1, compute_type="float32")
+        self.k2_model = load_model(precision='int8')
 
         # PyAudio の設定
         self.CHUNK = 480
@@ -20,8 +22,6 @@ class SpeechRecognition:
         self.DEVICE = 0
         self.RATE = 16000  # Whisper モデルのサンプリングレートに合わせる
 
-        # PyAudio の初期化
-        self.p = pyaudio.PyAudio()
         if os.path.exists(temp_dir) and os.path.isfile(temp_dir):
             raise FileExistsError(f'すでに {temp_dir} ファイルが存在します')
         elif not os.path.isdir(temp_dir):
@@ -31,7 +31,9 @@ class SpeechRecognition:
 
     def speech_vad(self):
         # VAD の初期化
-        vad = webrtcvad.Vad(0)  # 3 は最も感度の高いモード
+        vad = webrtcvad.Vad(3)  # 3 は最も感度の高いモード
+        # PyAudio の初期化
+        self.p = pyaudio.PyAudio()
         # ストリームを開く
         stream = self.p.open(format=self.FORMAT,
                         channels=self.CHANNELS,
@@ -85,7 +87,8 @@ class SpeechRecognition:
                 self.p.terminate()
                 self.save_wave(frames)
                 self.noise_reduction()
-                self.whisper()
+                # self.whisper()
+                self.k2()
 
     def speech(self):
         # ストリームを開く
@@ -156,6 +159,11 @@ class SpeechRecognition:
         # 認識結果を表示
         for segment in segments:
             print(f"[{segment.start:.2f}s -> {segment.end:.2f}s] {segment.text}")
+
+    def k2(self, filename: str='test1o.wav'):
+        audio = audio_from_path(os.path.join(self.temp_dir, filename))
+        ret = transcribe(self.k2_model, audio)
+        print(ret)
 
 
     @classmethod

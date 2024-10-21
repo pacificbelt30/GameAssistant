@@ -22,6 +22,7 @@ torchaudio = {version = "^2.3.1", source = "torch_cu118"}
 faster-whisper = "^1.0.3"
 ctranslate2 = "^4.4.0"
 webrtcvad = "^2.0.10"
+reazonspeech-k2-asr = {path = "third-party/ReazonSpeech/pkg/k2-asr"}
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
