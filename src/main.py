@@ -14,4 +14,6 @@ if __name__ == '__main__':
     # sr_thread = threading.Thread(target=sr.)
     sc_thread.start()
     # sc_thread.join()
+    while True:
+        sr.process_queue_audio()
 

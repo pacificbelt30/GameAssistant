@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import pyaudio
 import wave
 import faster_whisper
@@ -10,19 +10,24 @@ import os
 import webrtcvad
 from reazonspeech.k2.asr import load_model, transcribe, audio_from_path, audio_from_numpy
 import numpy as np
+import struct
+import matplotlib.pyplot as plt
 
 import queue
 
 audio_queue = queue.Queue()
 
 class SpeechCapture:
-    def __init__(self):
+    def __init__(self, silent_wait: float = 1.5):
         # PyAudio の設定
         self.CHUNK = 480
         self.FORMAT = pyaudio.paInt16
         self.CHANNELS = 1
         self.DEVICE = 0
         self.RATE = 16000  # Whisper モデルのサンプリングレートに合わせる
+        self.silent_wait = silent_wait
+
+        self.temp_dir = "./temp"
 
     def speech_vad(self):
         # VAD の初期化
@@ -47,6 +52,7 @@ class SpeechCapture:
             if key == keyboard.Key.esc:  # Esc キーで終了
                 return False  # リスナーを停止
 
+        counter = 0
         while True:
             # 録音前の発話検知
             before_data = None
@@ -68,8 +74,8 @@ class SpeechCapture:
 
             # 発話開始後の録音
             try:
-                # 1s 程度無音が続いた場合に終了する
-                while len(silent_frames) < self.RATE//self.CHUNK:
+                # silent_wait 秒程度無音が続いた場合に終了する
+                while len(silent_frames) < (self.RATE*self.silent_wait)//self.CHUNK:
                     data = stream.read(self.CHUNK)
                     is_speech = vad.is_speech(data, self.RATE)
                     if not is_speech:
@@ -94,9 +100,15 @@ class SpeechCapture:
                 # self.noise_reduction()
 
                 # 音声をそのまま Queue に格納
+                if silent_frames != []:
+                    silent_frames = []
                 if frames != []:
+                    # self.save_wave(frames, f"test{counter}.wav")
+                    counter += 1
                     global audio_from_numpy
-                    audio_queue.put(frames)
+                    unpack = b''.join(frames)
+                    # for frame in frames: unpack += frame
+                    audio_queue.put(unpack)
                     frames = []
 
     def save_wave(self, frames, filename: str='test1.wav'):
@@ -109,7 +121,7 @@ class SpeechCapture:
         wf.writeframes(b''.join(frames))
         wf.close()
         end = time.time()
-        print('save wav: ==>', end-start, '[s]')
+        print(f'save wav: {filename} ==>', end-start, '[s]')
 
     def noise_reduction(self, input_file: str='test1.wav', output_file: str='test1o.wav'):
         # WAV ファイルを読み込み
@@ -136,7 +148,7 @@ class SpeechCapture:
 
 
 class SpeechRecognition:
-    def __init__(self, model:str='reasonspeech', temp_dir: str='./temp/'):
+    def __init__(self, model:str='reasonspeech', temp_dir: str='./temp/', output_queue: Optional[queue.Queue] = None):
         # PyAudio の設定
         self.CHUNK = 480
         self.FORMAT = pyaudio.paInt16
@@ -155,6 +167,16 @@ class SpeechRecognition:
         elif not os.path.isdir(temp_dir):
             os.makedirs(temp_dir)
         self.temp_dir = temp_dir
+
+        self.output_queue = output_queue
+
+    def process_queue_audio(self):
+        global audio_queue
+        audio = audio_queue.get()
+        res = self.model.inference(audio)
+        print("Recognition:", res)
+        if self.output_queue is not None:
+            self.output_queue.put(res)
 
 
     def speech_vad(self):
@@ -271,12 +293,15 @@ class ReasonSpeechK2:
     def inference_from_path(self, filename: str) -> str:
         audio = audio_from_path(filename)
         ret = transcribe(self.model, audio)
-        print(ret)
-        return ret
+        return ret.text
 
-    def inference(self, audio: List[List[int]]) -> str:
-        audio = audio_from_numpy(np.array(audio), self.RATE)
+    def inference(self, audio: List[List[bytes]]) -> str:
+        audio = struct.unpack(f'<{len(audio)//2}h', audio)
+        scale = 1.0 / float(1 << ((8 * 2) - 1))
+        audio = np.array(audio, dtype=np.float32) * scale
+        audio = audio_from_numpy(audio, self.RATE)
+
+        print(audio, len(audio.waveform), min(audio.waveform))
         ret = transcribe(self.model, audio)
-        print(ret)
         return ret.text
 
