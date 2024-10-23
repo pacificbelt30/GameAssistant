@@ -13,8 +13,24 @@ langchain = "^0.3.0"
 langchain-openai = "^0.2.0"
 langchain-google-genai = "^2.0.0"
 python-dotenv = "^1.0.1"
+pyaudio = "^0.2.14"
+ffmpeg-python = "^0.2.0"
+pynput = "^1.7.7"
+torch = {version = "^2.3.1+cu118", source = "torch_cu118"}
+torchvision = {version = "^0.18.1+cu118", source = "torch_cu118"}
+torchaudio = {version = "^2.3.1", source = "torch_cu118"}
 
 
+faster-whisper = "^1.0.3"
+ctranslate2 = "^4.4.0"
+webrtcvad = "^2.0.10"
+reazonspeech-k2-asr = {path = "third-party/ReazonSpeech/pkg/k2-asr"}
+matplotlib = "^3.9.2"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "torch_cu118"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "explicit"
