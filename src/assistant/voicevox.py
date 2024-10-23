@@ -1,11 +1,15 @@
 import requests
-import simpleaudio
+import pyaudio
+import wave
 # import json
 import os
 
 # VoiceVox Engine の API を使う
 class VoiceVoxWrapper:
     def __init__(self, base_url: str='http://127.0.0.1:50021'):
+        # PyAudio の設定
+        self.CHUNK = 480
+
         self.base_url = base_url
         temp_dir = './temp/'
         if os.path.exists(temp_dir) and os.path.isfile(temp_dir):
@@ -31,7 +35,22 @@ class VoiceVoxWrapper:
             f.write(r.content)
 
     def play_sound(self, wav: str='audio.wav'):
-        wav_obj = simpleaudio.WaveObject.from_wave_file(os.path.join(self.temp_dir, wav))
-        play_obj = wav_obj.play()
-        play_obj.wait_done()
+        # wav_obj = simpleaudio.WaveObject.from_wave_file(os.path.join(self.temp_dir, wav))
+        # play_obj = wav_obj.play()
+        # play_obj.wait_done()
+
+        wf = wave.open(os.path.join(self.temp_dir, wav), 'rb')
+        p = pyaudio.PyAudio()
+        stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
+                        channels=wf.getnchannels(),
+                        rate=wf.getframerate(),
+                        output=True)
+
+        data = wf.readframes(self.CHUNK)
+        while len(data) > 0:
+            stream.write(data)
+            data = wf.readframes(self.CHUNK)
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
 

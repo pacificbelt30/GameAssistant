@@ -1,3 +1,4 @@
+import sys
 from assistant.screenshot import capture_screen
 from assistant.ai import AIAssistant
 from assistant.voicevox import VoiceVoxWrapper
@@ -10,7 +11,7 @@ if __name__ == '__main__':
     text = """
     生麦、生ゴメ、生卵
     """
-    vv = VoiceVoxWrapper()
-    vv.create_voice(text=text)
+    vv = VoiceVoxWrapper(str(sys.argv[1]))
+    vv.create_voice(text=text, speaker_id=2)
     vv.play_sound('audio.wav')
 
