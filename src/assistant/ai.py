@@ -4,6 +4,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts.chat import HumanMessagePromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.llms import LlamaCpp
 import os
 from typing import Optional, Any, Tuple
 from utils.image_processing import encode_image, resize_suit
@@ -40,6 +41,29 @@ class AIAssistant:
         # Google Gemini API 初期化（環境変数 GOOGLE_API_KEY が必要）
         elif provider == 'google':
             self.llm = ChatGoogleGenerativeAI(model=model, temperature=temperature, max_token=None, timeout=None, max_retries=2)
+        elif provider == 'local':
+            try:
+                from huggingface_hub import hf_hub_download, HfFileSystem
+                from huggingface_hub.utils import validate_repo_id
+            except ImportError:
+                raise ImportError(
+                    "Llama.from_pretrained requires the huggingface-hub package. "
+                    "You can install it with `pip install huggingface-hub`."
+                )
+            repo_id = "alfredplpl/gemma-2-2b-jpn-it-gguf"
+            filename = "gemma-2-2b-jpn-it-IQ4_XS.gguf"
+            validate_repo_id(repo_id)
+            # download the file
+            model_path = hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                subfolder=None,
+                local_dir=None,
+                local_dir_use_symlinks='auto',
+                cache_dir=None,
+            )
+            # self.llm = LlamaCpp(model_path="./gemma-2-2b-jpn-it-IQ4_XS.gguf", temperature=temperature, max_tokens=None, top_p=1, verbose=True,)
+            self.llm = LlamaCpp(model_path=model_path, temperature=temperature, max_tokens=None, top_p=1, verbose=True,)
         else:
             raise ProviderNotSupported(provider)
 
@@ -59,14 +83,16 @@ class AIAssistant:
             ("system", self.system_message),
             ("human", "{question}"),
             # HumanMessagePromptTemplate.from_template(image_prompt)
-            *self.image_prompts
+            # *self.image_prompts
         ])
         # print(prompt_template)
 
         chain = prompt_template | self.llm | StrOutputParser()
         # chain = prompt_template
         # chain = image_prompt
-        prompt = {"question": question} | self.images
+        # prompt = {"question": question} | self.images
+        print('question:', question)
+        prompt = {"question": question}
         result = chain.invoke(prompt)
         # print(prompt)
         # print(type(result))

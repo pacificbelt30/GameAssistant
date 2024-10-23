@@ -26,6 +26,9 @@ ctranslate2 = "^4.4.0"
 webrtcvad = "^2.0.10"
 reazonspeech-k2-asr = {path = "third-party/ReazonSpeech/pkg/k2-asr"}
 matplotlib = "^3.9.2"
+llama-cpp-python = "^0.3.1"
+huggingface-hub = "^0.26.1"
+langchain-community = "^0.3.3"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
