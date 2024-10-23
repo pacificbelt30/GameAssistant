@@ -1,7 +1,7 @@
 from typing import List, Optional
 import pyaudio
 import wave
-import faster_whisper
+# import faster_whisper
 # import keyboard
 from pynput import keyboard
 import ffmpeg

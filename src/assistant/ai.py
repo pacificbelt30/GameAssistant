@@ -25,7 +25,8 @@ def create_image_template(variable_name: str="path"):
 
 # システムプロンプトの設定
 default_system_message = """
-あなたは優れたゲームアシスタントです。プレイヤからの質問に画面を見ながら回答してください。
+相手の質問に対して、1, 2行の簡潔かつ短い文章で返答をしてください。
+出力は質問に対する返答のみを返してください。
 """
 
 class AIAssistant:
@@ -81,7 +82,7 @@ class AIAssistant:
         # のちの外部 yaml から読むようにする
         prompt_template = ChatPromptTemplate([
             ("system", self.system_message),
-            ("human", "{question}"),
+            ("human", "{question}。"),
             # HumanMessagePromptTemplate.from_template(image_prompt)
             # *self.image_prompts
         ])

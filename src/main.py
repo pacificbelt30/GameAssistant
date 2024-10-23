@@ -11,7 +11,7 @@ if __name__ == '__main__':
     ai = AIAssistant(provider='local')
     # ai = AIAssistant(provider='google', model='gemini-1.5-flash-002')
     # ai.set_images(['data/zundamon.png'])
-    ai.ai_eval('画像の内容を説明してください。')
+    ai.ai_eval('Warmup')
     vv = VoiceVoxWrapper(str(sys.argv[1]))
     sc = SpeechCapture()
     sc_thread = threading.Thread(target=sc.speech_vad, daemon=True)
