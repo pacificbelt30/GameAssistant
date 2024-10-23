@@ -170,12 +170,17 @@ class SpeechRecognition:
 
         self.output_queue = output_queue
 
-    def process_queue_audio(self):
+    def inf_loop_speech_recognition(self, threshold_of_token=10):
+        while True:
+            self.process_queue_audio(threshold_of_token)
+    def process_queue_audio(self, threshold_of_token=10):
         global audio_queue
         audio = audio_queue.get()
         res = self.model.inference(audio)
         print("Recognition:", res)
-        if self.output_queue is not None:
+        if self.output_queue is not None and len(res) > threshold_of_token:
+        # if self.output_queue is not None:
+            print('queue put')
             self.output_queue.put(res)
 
 
