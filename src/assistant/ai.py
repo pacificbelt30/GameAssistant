@@ -25,7 +25,7 @@ def create_image_template(variable_name: str="path"):
 
 # システムプロンプトの設定
 default_system_message = """
-相手の質問に対して、1, 2行の簡潔かつ短い文章で返答をしてください。
+相手の質問に対して、1, 2行の簡潔な文章で返答をしてください。
 出力は質問に対する返答のみを返してください。
 """
 
@@ -108,7 +108,7 @@ class ProviderNotSupported(Exception):
     def __str__(self):
         return (
             f"""Provider: {self.arg} は対応していません。
-対応 Provider: [\"openai\", \"google\"]
+対応 Provider: [\"openai\", \"google\", \"local\"]
             """
         )
 

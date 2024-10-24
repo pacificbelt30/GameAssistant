@@ -7,11 +7,13 @@ from assistant.whisper import SpeechRecognition, SpeechCapture
 from assistant.voicevox import VoiceVoxWrapper
 
 if __name__ == '__main__':
+    provider = 'google'
     # capture_screen((0,0), 1000, 900)
-    ai = AIAssistant(provider='local')
-    # ai = AIAssistant(provider='google', model='gemini-1.5-flash-002')
+    # ai = AIAssistant(provider='local')
+    ai = AIAssistant(provider=provider, model='gemini-1.5-flash-002')
     # ai.set_images(['data/zundamon.png'])
-    ai.ai_eval('Warmup')
+    if provider == 'local':
+        ai.ai_eval('Warmup')
     vv = VoiceVoxWrapper(str(sys.argv[1]))
     sc = SpeechCapture()
     sc_thread = threading.Thread(target=sc.speech_vad, daemon=True)
