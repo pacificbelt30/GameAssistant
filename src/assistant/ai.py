@@ -18,7 +18,8 @@ def create_image_template(variable_name: str="path"):
         [
             {
                 "type": "image_url",
-                "image_url": {"url": f"data:image/jpeg;base64,{{{variable_name}}}"},
+                # "image_url": {"url": f"data:image/jpeg;base64,{{{variable_name}}}"},
+                "image_url": {"url": f"{{{variable_name}}}"},
             }
         ],
     )
@@ -31,7 +32,8 @@ default_system_message = """
 
 class AIAssistant:
     # recommend gpt-4o-mini if openai and gemini-1.5-flash-002 if google
-    def __init__(self, provider: str='openai', model: str='gpt-4o-mini', temperature: int=0.9, system_message: str=default_system_message):
+    def __init__(self, provider: str='openai', model: str='gpt-4o-mini', use_img: bool=False, temperature: int=0.9, system_message: str=default_system_message):
+        self.use_img = use_img
         self.system_message = system_message
 
         # LLM 初期化
@@ -78,22 +80,33 @@ class AIAssistant:
         for i, img in enumerate(images): self.images.update({f'image_{i}': encode_image(img)})
         return True
 
+    def set_image_from_b64(self, image: str, compression: int=400) -> bool:
+        # resize_suit(image, compression)
+        self.image_prompts = [ create_image_template('image_0')]
+        self.images = {'image_0': image}
+        return True
+
     def ai_eval(self, question: str='this is user prompt'):
         # のちの外部 yaml から読むようにする
-        prompt_template = ChatPromptTemplate([
-            ("system", self.system_message),
-            ("human", "{question}。"),
+        template_array = [ ("system", self.system_message), ("human", "{question}。")]
+        if self.use_img:
+            for image_prompt in self.image_prompts: template_array.append(image_prompt)
+        prompt_template = ChatPromptTemplate(template_array)
+        # prompt_template = ChatPromptTemplate([
+            # ("system", self.system_message),
+            # ("human", "{question}。"),
             # HumanMessagePromptTemplate.from_template(image_prompt)
             # *self.image_prompts
-        ])
+        # ])
         # print(prompt_template)
 
         chain = prompt_template | self.llm | StrOutputParser()
         # chain = prompt_template
         # chain = image_prompt
-        # prompt = {"question": question} | self.images
-        print('question:', question)
         prompt = {"question": question}
+        if self.use_img: prompt |= self.images
+        print('question:', question)
+        # prompt = {"question": question}
         result = chain.invoke(prompt)
         # print(prompt)
         # print(type(result))
