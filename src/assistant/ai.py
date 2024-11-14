@@ -6,6 +6,7 @@ from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.llms import LlamaCpp
 import os
+import re
 from typing import Optional, Any, Tuple
 from utils.image_processing import encode_image, resize_suit
 from dotenv import load_dotenv
@@ -111,8 +112,37 @@ class AIAssistant:
         # print(prompt)
         # print(type(result))
         print(result)
-
         return {"result": result}
+
+    def ai_eval_stream(self, question: str='this is user prompt'):
+        # のちの外部 yaml から読むようにする
+        template_array = [ ("system", self.system_message), ("human", "{question}。")]
+        if self.use_img:
+            for image_prompt in self.image_prompts: template_array.append(image_prompt)
+        prompt_template = ChatPromptTemplate(template_array)
+
+        chain = prompt_template | self.llm | StrOutputParser()
+        prompt = {"question": question}
+        if self.use_img: prompt |= self.images
+        print('question:', question)
+        # prompt = {"question": question}
+        # result = chain.invoke(prompt)
+        split_char = '[、。,;\n]+'
+        cache = ''
+        for chunk in chain.stream(prompt):
+            cache += chunk
+            # split_char = ['、', '。', ',', '」', ';']
+            # print(chunk)
+            # print(type(split_char), type(cache))
+            res = re.split(split_char, cache)
+            if len(res) != 1:
+                cache = cache[len(res[0])+1:]
+                print('go', res[0], ', cache:', cache)
+                yield {"result": res[0]}
+
+        if cache != '':
+            print('rust')
+            yield {"result": cache}
 
 class ProviderNotSupported(Exception):
     def __init__(self, arg=""):
