@@ -4,7 +4,7 @@ from PIL import Image
 
 def encode_image(img_path):
   with open(img_path, "rb") as image_file:
-    return base64.b64encode(image_file.read()).decode('utf-8')
+    return 'data:image/jpeg;base64,'+base64.b64encode(image_file.read()).decode('utf-8')
 
 
 def scale_to_width(img, width):
