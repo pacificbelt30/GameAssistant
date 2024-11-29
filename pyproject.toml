@@ -30,6 +30,7 @@ matplotlib = "^3.9.2"
 llama-cpp-python = "^0.3.1"
 huggingface-hub = "^0.26.1"
 langchain-community = "^0.3.3"
+beautifulsoup4 = "^4.12.3"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

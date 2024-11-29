@@ -30,3 +30,30 @@ class VectorStore:
         embedding_vector = self.embedding.embed_query(query)
         docs = db.similarity_search_by_vector(embedding_vector)
         print(docs[0].page_content)
+
+
+if __name__ == '__main__':
+    import json
+    import os
+
+    os.environ["USER_AGENT"] = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+    )
+
+    from langchain_community.document_loaders import WebBaseLoader
+
+    loader = WebBaseLoader(
+        web_path="https://lethal-company.fandom.com/wiki/Entity",
+    )
+    documents = loader.load()
+
+    for document in documents:
+        print("--- page_content ---")
+        # print(document.page_content[0:100])
+        print(document.page_content)
+        print("-" * 20)
+        # print(document)
+
+        print(json.dumps(document.metadata, indent=2, ensure_ascii=False))
+        print(document.metadata['description'])
+
