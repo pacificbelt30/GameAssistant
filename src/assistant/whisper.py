@@ -91,7 +91,7 @@ class SpeechCapture:
                 print("\n録音終了")
                 break
             finally:
-                print("finally")
+                print("\n録音終了")
                 # ストリームを閉じるべきかそのまま使うかは要相談
                 # stream.stop_stream()
                 # stream.close()
@@ -173,14 +173,15 @@ class SpeechRecognition:
     def inf_loop_speech_recognition(self, threshold_of_token=10):
         while True:
             self.process_queue_audio(threshold_of_token)
+
     def process_queue_audio(self, threshold_of_token=10):
         global audio_queue
         audio = audio_queue.get()
         res = self.model.inference(audio)
-        print("Recognition:", res)
+        print("Recognition => ", f'\"{res}\"')
         if self.output_queue is not None and len(res) > threshold_of_token:
         # if self.output_queue is not None:
-            print('queue put')
+            # print('queue put')
             self.output_queue.put(res)
 
 
@@ -235,7 +236,7 @@ class SpeechRecognition:
                 print("\n録音終了")
 
             finally:
-                print("finally")
+                print("\n録音終了")
                 # ストリームを閉じる
                 stream.stop_stream()
                 stream.close()
@@ -306,7 +307,7 @@ class ReasonSpeechK2:
         audio = np.array(audio, dtype=np.float32) * scale
         audio = audio_from_numpy(audio, self.RATE)
 
-        print(audio, len(audio.waveform), min(audio.waveform))
+        # print(audio, len(audio.waveform), min(audio.waveform))
         ret = transcribe(self.model, audio)
         return ret.text
 

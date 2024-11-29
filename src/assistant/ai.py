@@ -1,10 +1,16 @@
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
 # from langchain_core.prompts.image import ImagePromptTemplate
 from langchain_core.prompts.chat import HumanMessagePromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.llms import LlamaCpp
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.messages import BaseMessage
+from pydantic import Field
+from typing import Union, Sequence
 import os
 import re
 from typing import Optional, Any, Tuple
@@ -28,14 +34,18 @@ def create_image_template(variable_name: str="path"):
 # システムプロンプトの設定
 default_system_message = """
 相手の質問に対して、1, 2行の簡潔な文章で返答をしてください。
-出力は質問に対する返答のみを返してください。
+出力は質問に対する返答のみで会話履歴をうまく使って返答してください。
 """
 
 class AIAssistant:
     # recommend gpt-4o-mini if openai and gemini-1.5-flash-002 if google
-    def __init__(self, provider: str='openai', model: str='gpt-4o-mini', use_img: bool=False, temperature: int=0.9, system_message: str=default_system_message):
+    def __init__(self, provider: str='openai', model: str='gpt-4o-mini', use_img: bool=False, temperature: float=0.9, system_message: str=default_system_message, max_messages: int=10):
         self.use_img = use_img
         self.system_message = system_message
+        self.memory = ChatMessageHistory()
+        self.store = {}
+        self.max_messages = max_messages
+        self.session_id = 86
 
         # LLM 初期化
         load_dotenv('.env')
@@ -99,7 +109,6 @@ class AIAssistant:
             # HumanMessagePromptTemplate.from_template(image_prompt)
             # *self.image_prompts
         # ])
-        # print(prompt_template)
 
         chain = prompt_template | self.llm | StrOutputParser()
         # chain = prompt_template
@@ -109,40 +118,53 @@ class AIAssistant:
         print('question:', question)
         # prompt = {"question": question}
         result = chain.invoke(prompt)
-        # print(prompt)
-        # print(type(result))
         print(result)
         return {"result": result}
 
+    # セッションIDごとの会話履歴の取得
+    def _get_session_history(self, session_id: str) -> BaseChatMessageHistory:
+        if session_id not in self.store:
+            # self.store[session_id] = ChatMessageHistory()
+            self.store[session_id] = LimitedChatMessageHistory(self.max_messages) # 5turn
+        return self.store[session_id]
+
     def ai_eval_stream(self, question: str='this is user prompt'):
         # のちの外部 yaml から読むようにする
-        template_array = [ ("system", self.system_message), ("human", "{question}。")]
+        template_array = [ ("system", self.system_message), MessagesPlaceholder(variable_name="history"), ("human", "{question}。")]
         if self.use_img:
             for image_prompt in self.image_prompts: template_array.append(image_prompt)
         prompt_template = ChatPromptTemplate(template_array)
 
         chain = prompt_template | self.llm | StrOutputParser()
+        # chain = prompt_template | self.llm
+
+        # RunnableWithMessageHistoryの準備
+        runnable_with_history = RunnableWithMessageHistory(
+            chain,
+            self._get_session_history,
+            input_messages_key="question",
+            history_messages_key="history",
+        )
+        # chain = prompt_template
         prompt = {"question": question}
         if self.use_img: prompt |= self.images
-        print('question:', question)
-        # prompt = {"question": question}
-        # result = chain.invoke(prompt)
+        # print('question:', question)
+        # prompt_check = {"question": question, "history": get_session_history(self.session_id).messages}
+        # print(prompt_template.invoke(prompt_check).to_messages())
         split_char = '[、。,;\n]+'
         cache = ''
-        for chunk in chain.stream(prompt):
+        # for chunk in chain.stream(prompt):
+        for chunk in runnable_with_history.stream(prompt, config={"configurable": {"session_id": self.session_id}}):
             cache += chunk
-            # split_char = ['、', '。', ',', '」', ';']
-            # print(chunk)
-            # print(type(split_char), type(cache))
             res = re.split(split_char, cache)
             if len(res) != 1:
                 cache = cache[len(res[0])+1:]
-                print('go', res[0], ', cache:', cache)
+                print('response:', f'\"{res[0]}\"', ', cache:', f'\"{cache}\"')
                 yield {"result": res[0]}
 
         if cache != '':
-            print('rust')
             yield {"result": cache}
+        print("ChatHistory:", self.store)
 
 class ProviderNotSupported(Exception):
     def __init__(self, arg=""):
@@ -155,3 +177,18 @@ class ProviderNotSupported(Exception):
             """
         )
 
+
+class LimitedChatMessageHistory(ChatMessageHistory):
+    max_messages: int = Field(default=10)
+
+    def __init__(self, max_messages=10):
+        super().__init__()
+        self.max_messages = max_messages
+
+    def add_messages(self, messages: Sequence[BaseMessage]) -> None:
+        super().add_messages(messages)
+        self._limit_messages()
+
+    def _limit_messages(self):
+        if len(self.messages) > self.max_messages:
+            self.messages = self.messages[-self.max_messages:]
