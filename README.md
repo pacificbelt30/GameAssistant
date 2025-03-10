@@ -38,6 +38,9 @@ $ poetry run python3 src/main.py http://{VOICEVOX_ENGINE_IP}:{VOICEVOX_ENGINE_PO
 
 ## Whisper Setup (deprecated)
 現在は音声認識を [reasonspeech-k2-v2](https://huggingface.co/reazon-research/reazonspeech-k2-v2) に移行したため、非推奨です。
+
+reasonspeech-k2-v2 のインストール方法については近い内に記載します。
+
 ### Compute Capability が低い場合
 Compute Capability が低い場合、Ctranslate2 のバージョンを下げる必要がある
 ```bash
