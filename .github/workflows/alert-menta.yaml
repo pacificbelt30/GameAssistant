@@ -7,7 +7,7 @@ on:
 
 jobs:
   Alert-Menta:
-    if: (startsWith(github.event.comment.body, '/describe') || startsWith(github.event.comment.body, '/suggest') || startsWith(github.event.comment.body, '/ask')) && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    if: (startsWith(github.event.comment.body, '/describe') || startsWith(github.event.comment.body, '/suggest') || startsWith(github.event.comment.body, '/ask') || startsWith(github.event.comment.body, '/analysis')) && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     runs-on: ubuntu-22.04
     permissions:
       issues: write
@@ -36,6 +36,8 @@ jobs:
             COMMAND=describe
           elif [[ "$COMMENT_BODY" == /suggest* ]]; then
             COMMAND=suggest
+          elif [[ "$COMMENT_BODY" == /analysis* ]]; then
+            COMMAND=analysis
           fi
           echo "COMMAND=$COMMAND" >> $GITHUB_ENV
 
