@@ -22,3 +22,13 @@ ai:
     - ask:
         description: "Answer free-text questions."
         system_prompt: "The following is the GitHub Issue and comments on it. Based on the content provide a detailed response to the following question:\n"
+    - analysis:
+        description: "Perform a structured analysis of the Issue to help with resolution."
+        system_prompt: |
+          The following is the GitHub Issue and comments on it. Please perform a comprehensive analysis of the problem by following these steps:
+          1) Identify the key symptoms and observed behaviors
+          2) Isolate potential root causes based on the symptoms
+          3) Evaluate each potential cause and determine their likelihood
+          4) List the data points that would confirm or reject each hypothesis
+          5) Suggest a systematic approach to resolve the issue, including investigation steps and potential fixes
+          6) Identify any potential risks or side effects of the proposed solutions
