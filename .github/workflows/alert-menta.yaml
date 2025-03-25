@@ -1,4 +1,4 @@
-name: "Alert-Menta: Reacts to commands"
+name: "Alert-Menta: Reacts to specific commands"
 run-name: LLM responds to issues against the repository.🚀
 
 on:
@@ -7,7 +7,6 @@ on:
 
 jobs:
   Alert-Menta:
-    # コメントが /で始まり、コメント投稿者がMEMBERまたはOWNERであることを確認
     if: startsWith(github.event.comment.body, '/') && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     runs-on: ubuntu-24.04
     permissions:
@@ -20,8 +19,8 @@ jobs:
       - name: Download and Install alert-menta
         run: |
           curl -sLJO -H 'Accept: application/octet-stream' \
-          "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/assets/$( \
-          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/tags/v0.1.2" \
+          "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/pacificbelt30/alert-menta/releases/assets/$( \
+          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/tags/v0.0.6" \
           | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
           tar -zxvf alert-menta_Linux_x86_64.tar.gz
 
@@ -37,17 +36,14 @@ jobs:
         id: extract_command
         run: |
           COMMENT_BODY="${{ github.event.comment.body }}"
-          # 先頭の/を除去し、最初のスペースまたは終端までをコマンドとして抽出
           COMMAND=$(echo "$COMMENT_BODY" | sed -E 's|^/([^ ]*).*|\1|')
           echo "COMMAND=$COMMAND" >> $GITHUB_ENV
-          
-          # コマンドの後にスペースがある場合、それ以降をintentとして抽出
+
           if [[ "$COMMENT_BODY" == "/$COMMAND "* ]]; then
             INTENT=$(echo "$COMMENT_BODY" | sed -E "s|^/$COMMAND ||")
             echo "INTENT=$INTENT" >> $GITHUB_ENV
           fi
-          
-          # 設定ファイルからコマンドの存在をチェック
+
           COMMANDS_CHECK=$(yq e '.ai.commands[] | keys' .alert-menta.user.yaml | grep -c "$COMMAND" || echo "0")
           if [ "$COMMANDS_CHECK" -eq "0" ]; then
             echo "Invalid command: $COMMAND. Command not found in configuration."
@@ -57,7 +53,7 @@ jobs:
       - name: Add Comment
         run: |
           if [ -n "$INTENT" ]; then
-            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -intent "$INTENT"
+            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -intent "$INTENT" -use-rag -pinecone-api-key ${{ secrets.PINECONE_API_KEY }}
           else
-            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE
+            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -use-rag -pinecone-api-key  ${{ secrets.PINECONE_API_KEY }}
           fi
