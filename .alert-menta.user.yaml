@@ -16,12 +16,21 @@ ai:
     - describe:
         description: "Generate a detailed description of the Issue."
         system_prompt: "The following is the GitHub Issue and comments on it. Please Generate a detailed description.\n"
+        similar_code: false
+        similar_issue: true
+        require_intent: false
     - suggest:
         description: "Provide suggestions for improvement based on the contents of the Issue."
         system_prompt: "The following is the GitHub Issue and comments on it. Please identify the issues that need to be resolved based on the contents of the Issue and provide three suggestions for improvement.\n"
+        similar_code: true
+        similar_issue: false
+        require_intent: true
     - ask:
         description: "Answer free-text questions."
         system_prompt: "The following is the GitHub Issue and comments on it. Based on the content provide a detailed response to the following question:\n"
+        similar_code: true
+        similar_issue: true
+        require_intent: true
     - analysis:
         description: "Perform a structured analysis of the Issue to help with resolution."
         system_prompt: |
@@ -32,3 +41,6 @@ ai:
           4) List the data points that would confirm or reject each hypothesis
           5) Suggest a systematic approach to resolve the issue, including investigation steps and potential fixes
           6) Identify any potential risks or side effects of the proposed solutions
+        similar_code: true
+        similar_issue: true
+        require_intent: false
