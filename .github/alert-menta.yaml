@@ -7,8 +7,8 @@ on:
 
 jobs:
   Alert-Menta:
-    if: (startsWith(github.event.comment.body, '/describe') || startsWith(github.event.comment.body, '/suggest') || startsWith(github.event.comment.body, '/ask' || startsWith(github.event.comment.body, '/analysis')) && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
-    runs-on: ubuntu-22.04
+    if: startsWith(github.event.comment.body, '/') && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    runs-on: ubuntu-24.04
     permissions:
       issues: write
       contents: read
@@ -19,27 +19,10 @@ jobs:
       - name: Download and Install alert-menta
         run: |
           curl -sLJO -H 'Accept: application/octet-stream' \
-          "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/pacificbelt30/alert-menta/releases/assets/$( \
-          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/pacificbelt30/alert-menta/releases/tags/v0.0.5" \
+          "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/assets/$( \
+          curl -sL "https://${{ secrets.GH_TOKEN }}@api.github.com/repos/3-shake/alert-menta/releases/tags/v0.1.0" \
           | jq '.assets[] | select(.name | contains("Linux_x86")) | .id')"
           tar -zxvf alert-menta_Linux_x86_64.tar.gz
-
-      - name: Set Command
-        id: set_command
-        run: |
-          COMMENT_BODY="${{ github.event.comment.body }}"
-          if [[ "$COMMENT_BODY" == /ask* ]]; then
-            COMMAND=ask
-            INTENT=${COMMENT_BODY:5}
-            echo "INTENT=$INTENT" >> $GITHUB_ENV
-          elif [[ "$COMMENT_BODY" == /describe* ]]; then
-            COMMAND=describe
-          elif [[ "$COMMENT_BODY" == /suggest* ]]; then
-            COMMAND=suggest
-          elif [[ "$COMMENT_BODY" == /analysis* ]]; then
-            COMMAND=analysis
-          fi
-          echo "COMMAND=$COMMAND" >> $GITHUB_ENV
 
       - run: echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
 
@@ -49,10 +32,28 @@ jobs:
         run: |
           curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" -L -o .alert-menta.user.yaml "https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.REPOSITORY_NAME }}/main/.alert-menta.user.yaml" && echo "CONFIG_FILE=./.alert-menta.user.yaml" >> $GITHUB_ENV
 
+      - name: Extract command and intent
+        id: extract_command
+        run: |
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          COMMAND=$(echo "$COMMENT_BODY" | sed -E 's|^/([^ ]*).*|\1|')
+          echo "COMMAND=$COMMAND" >> $GITHUB_ENV
+
+          if [[ "$COMMENT_BODY" == "/$COMMAND "* ]]; then
+            INTENT=$(echo "$COMMENT_BODY" | sed -E "s|^/$COMMAND ||")
+            echo "INTENT=$INTENT" >> $GITHUB_ENV
+          fi
+
+          COMMANDS_CHECK=$(yq e '.ai.commands[] | keys' .alert-menta.user.yaml | grep -c "$COMMAND" || echo "0")
+          if [ "$COMMANDS_CHECK" -eq "0" ]; then
+            echo "Invalid command: $COMMAND. Command not found in configuration."
+            exit 1
+          fi
+
       - name: Add Comment
         run: |
-          if [[ "$COMMAND" == "ask" ]]; then
-            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -intent "$INTENT"
+          if [ -n "$INTENT" ]; then
+            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -intent "$INTENT" -use-rag -pinecone-api-key ${{ secrets.PINECONE_API_KEY }}
           else
-            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -use-rag -pinecone-api-key $PINECONE_API_KEY
+            ./alert-menta -owner ${{ github.repository_owner }} -issue ${{ github.event.issue.number }} -repo ${{ env.REPOSITORY_NAME }} -github-token ${{ secrets.GH_TOKEN }} -api-key ${{ secrets.OPENAI_API_KEY }} -command $COMMAND -config $CONFIG_FILE -use-rag -pinecone-api-key  ${{ secrets.PINECONE_API_KEY }}
           fi
